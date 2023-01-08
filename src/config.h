@@ -14,8 +14,8 @@ String    TOPICBLOCK3 = "system/0/Ac/Grid/L1/Power";                // Grid powe
 String    TOPICBLOCK4 = "system/0/Dc/Pv/Power";                     // Solar power
 String    TOPICBLOCK5 = "system/0/Ac/ConsumptionOnOutput/L1/Power"; // Critical loads
 
-#define WIFI_SSID                   "RAADMIN"
-#define WIFI_PASSWORD               "69062752060860126585543"
+#define WIFI_SSID                   "<YOUR SSID>"
+#define WIFI_PASSWORD               "<YOUR WIFI PASSWORD>"
 
 #define LCD_H_RES                   320
 #define LCD_V_RES                   170
