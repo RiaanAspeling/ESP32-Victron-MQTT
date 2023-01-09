@@ -3,7 +3,7 @@
 
 IPAddress VICTRON_IP (10, 0, 2, 90);
 int       VICTRON_PORT = 1883;
-String    VICTRON_ID = "0cb2b788345a";
+String    VICTRON_ID = "0aabbccddeef";
 int       VICTRON_MQTT_TIMEOUT = 5;
 
 int       TOPICVALUES[] = {0, 0, 0, 0, 0};
