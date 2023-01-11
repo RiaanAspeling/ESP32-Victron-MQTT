@@ -136,9 +136,9 @@ void drawBlock1(float value) // Battery
   gfx->setCursor(30, 50);
   gfx->println("BATTERY");
 }
-void drawBlock2(int value)  // Non-critical loads
+void drawBlock2(int value, bool hasFailed)  // Non-critical loads
 {
-  if (value >= 3000 && value > TOPICVALUES[3]) {
+  if ((value >= 3000 && value > TOPICVALUES[3]) || hasFailed) {
     gfx->fillRoundRect(112, 5, 95, 60, 5, RED);
     gfx->setTextColor(WHITE);
   } else if (value < 3000 && value >= 1000 && value > TOPICVALUES[3]) {
@@ -157,9 +157,9 @@ void drawBlock2(int value)  // Non-critical loads
   gfx->setCursor(122, 50);
   gfx->println("NONCRITICAL");
 }
-void drawBlock3(int value)  // Grid power
+void drawBlock3(int value, bool hasFailed)  // Grid power
 {
-  if (value >= 3000) {
+  if (value >= 3000 || hasFailed) {
     gfx->fillRoundRect(219, 5, 95, 60, 5, RED);
     gfx->setTextColor(WHITE);
   } else if (value < 3000 && value >= 1000) {
@@ -236,11 +236,11 @@ void mqttCallback(char* topic, byte* message, unsigned int length) {
   } else if (String(topic).endsWith(TOPICBLOCK2)) { // Non-critical loads
     int load = doc["value"];
     TOPICVALUES[1] = load;
-    drawBlock2(load);
+    drawBlock2(load, doc["value"].isNull());
   } else if (String(topic).endsWith(TOPICBLOCK3)) { // Grid power
     int grid = doc["value"];
     TOPICVALUES[2] = grid;
-    drawBlock3(grid);
+    drawBlock3(grid, doc["value"].isNull());
   } else if (String(topic).endsWith(TOPICBLOCK4)) { // Solar power
     int pv = doc["value"];
     TOPICVALUES[3] = pv;
