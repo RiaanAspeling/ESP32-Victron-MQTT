@@ -102,7 +102,6 @@ void loop() {
       mqttClient.publish(buf0, buf1);
     }
   }
-
 }
 
 void drawBackground()
@@ -118,12 +117,15 @@ void drawBackground()
 void drawBlock1(float value) // Battery
 {
   if (value > float(MSOC) * 1.1) {
+    // Battery is charged more than 10% above the minimum state of charge
     gfx->fillRoundRect(5, 5, 95, 60, 5, DARKGREEN);
     gfx->setTextColor(WHITE);
   } else if ( value >= float(MSOC) / 1.1 && value < float(MSOC) * 1.1) {
+    // Battery is less than 10% but more than -10% of minimum state of charge
     gfx->fillRoundRect(5, 5, 95, 60, 5, YELLOW);
     gfx->setTextColor(BLACK);
   } else {
+    // Battery is less than -10% of minimum state of charge
     gfx->fillRoundRect(5, 5, 95, 60, 5, RED);
     gfx->setTextColor(WHITE);
   }
@@ -151,7 +153,10 @@ void drawBlock2(int value, bool hasFailed)  // Non-critical loads
   gfx->setTextSize(1);
   gfx->setFont(u8g2_font_10x20_mr);
   gfx->setCursor(137, 30);
-  gfx->println(fixLengthStringRightAlign(String(value) + "W", 5));
+  if (hasFailed) 
+    gfx->println(fixLengthStringRightAlign("-----", 5));
+  else
+    gfx->println(fixLengthStringRightAlign(String(value) + "W", 5));
   gfx->setTextSize(1);
   gfx->setFont(u8g2_font_7x13_mr);
   gfx->setCursor(122, 50);
@@ -172,7 +177,10 @@ void drawBlock3(int value, bool hasFailed)  // Grid power
   gfx->setTextSize(1);
   gfx->setFont(u8g2_font_10x20_mr);
   gfx->setCursor(244, 30);
-  gfx->println(fixLengthStringRightAlign(String(value) + "W", 5));
+  if (hasFailed)
+    gfx->println(fixLengthStringRightAlign("-----", 5));
+  else
+    gfx->println(fixLengthStringRightAlign(String(value) + "W", 5));
   gfx->setTextSize(1);
   gfx->setFont(u8g2_font_7x13_mr);
   gfx->setCursor(234, 50);
@@ -180,10 +188,12 @@ void drawBlock3(int value, bool hasFailed)  // Grid power
 }
 void drawBlock4(int value)  // Solar power
 {
-  if (value > TOPICVALUES[4]) {
+  if (value > float(TOPICVALUES[4])) {
+    // Solar is generating more critical loads
     gfx->fillRoundRect(5, 77, 149, 88, 5, DARKGREEN);
     gfx->setTextColor(WHITE);
-  } else if (value < TOPICVALUES[4] && value > 500) {
+  } else if (value > float(TOPICVALUES[4]) / 1.1) {
+    // Solar is generating less than critical loads but more than -10% of load
     gfx->fillRoundRect(5, 77, 149, 88, 5, YELLOW);
     gfx->setTextColor(BLACK);
   } else {
@@ -202,9 +212,11 @@ void drawBlock4(int value)  // Solar power
 void drawBlock5(int value)  // Critical loads
 {
   if (value < TOPICVALUES[3] || value < 1500) {
+    // Critical load is less than solar power or less than 1500W
     gfx->fillRoundRect(166, 77, 149, 88, 5, DARKGREEN);
     gfx->setTextColor(WHITE);
-  } else if (value >= 1500 && value < 3000 && TOPICVALUES[0] > 75) {
+  } else if (value >= 1500 && value < 3000 && TOPICVALUES[0] > float(MSOC) * 1.1) {
+    // Critical load is more than 1500W but less than 3000W and battery charge is more than 10% of minimum state of charge
     gfx->fillRoundRect(166, 77, 149, 88, 5, YELLOW);
     gfx->setTextColor(BLACK);
   } else {
