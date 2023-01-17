@@ -1,18 +1,20 @@
 #include "Arduino.h"
 #pragma once
 
-IPAddress VICTRON_IP (10, 0, 2, 90);
+IPAddress VICTRON_IP (192, 168, 1, 1);
 int       VICTRON_PORT = 1883;
 String    VICTRON_ID = "0aabbccddeef";
 int       VICTRON_MQTT_TIMEOUT = 5;
 
 int       TOPICVALUES[] = {0, 0, 0, 0, 0};
-//String    TOPICBLOCK1 = "system/0/Batteries";
-String    TOPICBLOCK1 = "battery/256/Soc";                          // Battery state of charge
-String    TOPICBLOCK2 = "system/0/Ac/ConsumptionOnInput/L1/Power";  // Non-critical load
-String    TOPICBLOCK3 = "system/0/Ac/Grid/L1/Power";                // Grid power
-String    TOPICBLOCK4 = "system/0/Dc/Pv/Power";                     // Solar power
-String    TOPICBLOCK5 = "system/0/Ac/ConsumptionOnOutput/L1/Power"; // Critical loads
+String    TOPICBLOCK1 = "battery/256/Soc";                                  // Battery state of charge. Alternative location = "system/0/Batteries"
+String    TOPICBLOCK2 = "system/0/Ac/ConsumptionOnInput/L1/Power";          // Non-critical load
+String    TOPICBLOCK3 = "system/0/Ac/Grid/L1/Power";                        // Grid power
+String    TOPICBLOCK4 = "system/0/Dc/Pv/Power";                             // Solar power
+String    TOPICBLOCK5 = "system/0/Ac/ConsumptionOnOutput/L1/Power";         // Critical loads
+
+int       MSOC = 0;
+String    TOPICMSOC = "settings/0/Settings/CGwacs/BatteryLife/MinimumSocLimit";  // Minimum State of Charge as set by user
 
 #define WIFI_SSID                   "<YOUR SSID>"
 #define WIFI_PASSWORD               "<YOUR WIFI PASSWORD>"

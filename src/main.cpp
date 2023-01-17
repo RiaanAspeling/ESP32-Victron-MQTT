@@ -97,7 +97,7 @@ void loop() {
       char buf1[255];
       String tempStr = "R/" + VICTRON_ID + "/keepalive";
       tempStr.toCharArray(buf0, tempStr.length() + 1);
-      tempStr = "[\"" + TOPICBLOCK1 + "\", \"" + TOPICBLOCK2 + "\", \"" + TOPICBLOCK3 + "\", \"" + TOPICBLOCK4 + "\", \"" + TOPICBLOCK5 + "\"]";
+      tempStr = "[\"" + TOPICBLOCK1 + "\", \"" + TOPICBLOCK2 + "\", \"" + TOPICBLOCK3 + "\", \"" + TOPICBLOCK4 + "\", \"" + TOPICBLOCK5 + "\", \"" + MSOC + "\"]";
       tempStr.toCharArray(buf1, tempStr.length() + 1);
       mqttClient.publish(buf0, buf1);
     }
@@ -117,10 +117,10 @@ void drawBackground()
 
 void drawBlock1(float value) // Battery
 {
-  if (value >= 75) {
+  if (value > float(MSOC) * 1.1) {
     gfx->fillRoundRect(5, 5, 95, 60, 5, DARKGREEN);
     gfx->setTextColor(WHITE);
-  } else if (value < 75 && value >= 40.0) {
+  } else if ( value >= float(MSOC) / 1.1 && value < float(MSOC) * 1.1) {
     gfx->fillRoundRect(5, 5, 95, 60, 5, YELLOW);
     gfx->setTextColor(BLACK);
   } else {
@@ -249,7 +249,31 @@ void mqttCallback(char* topic, byte* message, unsigned int length) {
     int ac = doc["value"];
     TOPICVALUES[4] = ac;
     drawBlock5(ac);
+  } else if (String(topic).endsWith(TOPICMSOC)) {  // Minimum state of charge
+    MSOC = doc["value"];
   }
+}
+
+void subscribeMessage(String message) {
+    char buf0[255];
+    message.toCharArray(buf0, message.length() + 1);
+    mqttClient.subscribe(buf0); 
+}
+
+void subscribe() {
+    // Battery (Block1)
+    subscribeMessage("N/" + VICTRON_ID + "/" + TOPICBLOCK1 + "/#");
+    // Non-critical Loads (Block2)
+    subscribeMessage("N/" + VICTRON_ID + "/" + TOPICBLOCK2 + "/#");
+    // Grid power (Block3)
+    subscribeMessage("N/" + VICTRON_ID + "/" + TOPICBLOCK3 + "/#");
+    // Solar power (Block4)
+    subscribeMessage("N/" + VICTRON_ID + "/" + TOPICBLOCK4 + "/#");
+    // Critical Loads (Block5)
+    subscribeMessage("N/" + VICTRON_ID + "/" + TOPICBLOCK5 + "/#");
+    // Minimum State of Charge
+    subscribeMessage("N/" + VICTRON_ID + "/" + TOPICMSOC + "/#");
+    Serial.println("Subscribed!");
 }
 
 void reconnect() {
@@ -259,34 +283,14 @@ void reconnect() {
     // Attempt to connect
     if (mqttClient.connect("ESP32-Victron-MQTT")) {
       Serial.println("Connected!");
-      char buf0[255];
-      // Battery (Block1)
-      String tempStr = "N/" + VICTRON_ID + "/" + TOPICBLOCK1 + "/#";
-      tempStr.toCharArray(buf0, tempStr.length() + 1); // {value}
-      mqttClient.subscribe(buf0); 
-      // Non-critical Loads (Block2)
-      tempStr = "N/" + VICTRON_ID + "/" + TOPICBLOCK2 + "/#";
-      tempStr.toCharArray(buf0, tempStr.length() + 1); // {value}
-      mqttClient.subscribe(buf0);
-      // Grid power (Block3)
-      tempStr = "N/" + VICTRON_ID + "/" + TOPICBLOCK3 + "/#";
-      tempStr.toCharArray(buf0, tempStr.length() + 1); // {value}
-      mqttClient.subscribe(buf0);
-      // Solar power (Block4)
-      tempStr = "N/" + VICTRON_ID + "/" + TOPICBLOCK4 + "/#";
-      tempStr.toCharArray(buf0, tempStr.length() + 1); // {value}
-      mqttClient.subscribe(buf0);
-      // Critical Loads (Block5)
-      tempStr = "N/" + VICTRON_ID + "/" + TOPICBLOCK5 + "/#";
-      tempStr.toCharArray(buf0, tempStr.length() + 1); // {value}
-      mqttClient.subscribe(buf0);
-      Serial.println("Subscribed!");
+      subscribe();
     } else {
       Serial.println("Failed to connect .. retry in 5");
       delay(5000);
     }
   }
 }
+
 
 String fixLengthStringRightAlign(String text, int length)
 {
