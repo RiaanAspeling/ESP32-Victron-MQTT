@@ -5,6 +5,7 @@ IPAddress VICTRON_IP (192, 168, 1, 1);
 int       VICTRON_PORT = 1883;
 String    VICTRON_ID = "0aabbccddeef";
 int       VICTRON_MQTT_TIMEOUT = 5;
+int       VICTRON_WATT = 5000;
 
 int       TOPICVALUES[] = {0, 0, 0, 0, 0};
 String    TOPICBLOCK1 = "battery/256/Soc";                                  // Battery state of charge. Alternative location = "system/0/Batteries"
