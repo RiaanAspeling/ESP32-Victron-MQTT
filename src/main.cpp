@@ -188,12 +188,12 @@ void drawBlock3(int value, bool hasFailed)  // Grid power
 }
 void drawBlock4(int value)  // Solar power
 {
-  if (value > float(TOPICVALUES[4])) {
-    // Solar is generating more critical loads
+  if (value > float(TOPICVALUES[4] / 1.1)) {
+    // Solar is generating more than -10% of critical loads
     gfx->fillRoundRect(5, 77, 149, 88, 5, DARKGREEN);
     gfx->setTextColor(WHITE);
-  } else if (value > float(TOPICVALUES[4]) / 1.1) {
-    // Solar is generating less than critical loads but more than -10% of load
+  } else if (value > float(TOPICVALUES[4]) / 1.3) {
+    // Solar is generating less than -10% of critical loads but more than -30% of load
     gfx->fillRoundRect(5, 77, 149, 88, 5, YELLOW);
     gfx->setTextColor(BLACK);
   } else {
@@ -211,12 +211,12 @@ void drawBlock4(int value)  // Solar power
 }
 void drawBlock5(int value)  // Critical loads
 {
-  if (value < TOPICVALUES[3] || value < 1500) {
-    // Critical load is less than solar power or less than 1500W
+  if (value < TOPICVALUES[3] || value < float(VICTRON_WATT) * 0.5) {
+    // Critical load is less than solar power or less than 50% of what the inverter kan handle
     gfx->fillRoundRect(166, 77, 149, 88, 5, DARKGREEN);
     gfx->setTextColor(WHITE);
-  } else if (value >= 1500 && value < 3000 && TOPICVALUES[0] > float(MSOC) * 1.1) {
-    // Critical load is more than 1500W but less than 3000W and battery charge is more than 10% of minimum state of charge
+  } else if (value >= float(VICTRON_WATT) * 0.5 && value < float(VICTRON_WATT) * 0.8 && TOPICVALUES[0] > float(MSOC) * 1.1) {
+    // Critical load is more than 50% but less than 80% of what invertor kan handle and battery charge is more than 10% of minimum state of charge
     gfx->fillRoundRect(166, 77, 149, 88, 5, YELLOW);
     gfx->setTextColor(BLACK);
   } else {
