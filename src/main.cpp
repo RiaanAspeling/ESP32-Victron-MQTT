@@ -4,8 +4,10 @@
 #include "Arduino_GFX_Library.h"
 #include "PubSubClient.h"
 #include "ArduinoJSON.h"
-#include "main.h"
+#include <SPIFFS.h>
 #include "config.h"
+#include <WiFiManager.h>
+#include "extensions.cpp"
 
 // INIT GFX
 Arduino_DataBus *bus = new Arduino_ESP32LCD8(PIN_LCD_DC, PIN_LCD_CS, PIN_LCD_WR, PIN_LCD_RD, PIN_LCD_D0, PIN_LCD_D1, PIN_LCD_D2, PIN_LCD_D3, PIN_LCD_D4, PIN_LCD_D5, PIN_LCD_D6, PIN_LCD_D7);
@@ -20,88 +22,24 @@ PubSubClient mqttClient(wifiClient);
 
 ulong lastMQTTResponse = 0;
 
-void setup() {
+//flag for saving data
+bool shouldSaveConfig = false;
 
-  Serial.begin(9600);
-
-  pinMode(PIN_POWER_ON, OUTPUT);
-  digitalWrite(PIN_POWER_ON, HIGH);
-  ledcSetup(0, 10000, 8);
-  ledcAttachPin(PIN_LCD_BL, 0);
-  ledcWrite(0, LCD_BRIGHTNESS);
-
-  gfx->begin();
-  gfx->setRotation(3);
-  gfx->fillScreen(BLACK);
-  gfx->setTextSize(1);
-  gfx->setFont(u8g2_font_10x20_mr);
-  gfx->setTextColor(GREEN);
-  gfx->setCursor(0, 12);
-  gfx->println("Starting...");
-
-  Serial.println("Starting...");
-
-  gfx->setTextColor(WHITE);
-  gfx->println("SSID: " + String(WIFI_SSID));
-
-  Serial.println("SSID: " + String(WIFI_SSID));
-
-  WiFi.setAutoReconnect(true);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-  gfx->setTextColor(RED);
-  while (WiFi.status() != WL_CONNECTED) 
-  {
-    gfx->printf(".");
-    Serial.print(".");
-    delay(1000);
-  }
-  gfx->setTextColor(GREEN);
-  gfx->println("\nConnected!");
-  Serial.println("\nConnected!");
-  gfx->setTextColor(WHITE);
-  gfx->println("IP: " + WiFi.localIP().toString());
-  Serial.println("IP: " + WiFi.localIP().toString());
-
-  delay(2000);
-
-  mqttClient.setServer(VICTRON_IP, VICTRON_PORT);
-  mqttClient.setCallback(mqttCallback);
-
-  drawBackground();
+String fixLengthStringRightAlign(String text, int length)
+{
+  String rtnVal;
+  for (int i = 0; i < length; i++)
+    rtnVal += " ";
+  rtnVal += text;
+  return rtnVal.substring(rtnVal.length() - length, rtnVal.length());
 }
 
-void loop() {
-  // If WiFi is not connected exit loop and wait for reconnection
-  if (!WiFi.isConnected()) {
-      Serial.println("WiFi connection lost ...");
-      delay(1000);
-      drawBackground();
-    return;
-  }
-  if (!mqttClient.connected()) {
-    Serial.println("Not connected!");
-    reconnect();
-  }
-
-  mqttClient.loop();
-
-  if (lastMQTTResponse + (VICTRON_MQTT_TIMEOUT * 1000) < millis())
-  {
-    // Send a keep alive message
-    if (mqttClient.connected())
-    {
-      lastMQTTResponse = millis();
-      Serial.println("Sending keep alive.");
-      char buf0[25];
-      char buf1[255];
-      String tempStr = "R/" + VICTRON_ID + "/keepalive";
-      tempStr.toCharArray(buf0, tempStr.length() + 1);
-      tempStr = "[\"" + TOPICBLOCK1 + "\", \"" + TOPICBLOCK2 + "\", \"" + TOPICBLOCK3 + "\", \"" + TOPICBLOCK4 + "\", \"" + TOPICBLOCK5 + "\", \"" + MSOC + "\"]";
-      tempStr.toCharArray(buf1, tempStr.length() + 1);
-      mqttClient.publish(buf0, buf1);
-    }
-  }
+String fixLengthStringLeftAlign(String text, int length)
+{
+  String rtnVal = text;
+  for (int i = 0; i < length; i++)
+    rtnVal += " ";
+  return rtnVal.substring(0, length);
 }
 
 void drawBackground()
@@ -113,7 +51,6 @@ void drawBackground()
   gfx->fillRoundRect(0, 72, 159, 98, 5, LIGHTGREY);      gfx->fillRoundRect(5, 77, 149, 88, 5, DARKGREY);
   gfx->fillRoundRect(161, 72, 159, 98, 5, LIGHTGREY);    gfx->fillRoundRect(166, 77, 149, 88, 5, DARKGREY);
 }
-
 void drawBlock1(float value) // Battery
 {
   if (value > float(MSOC) * 1.1) {
@@ -303,20 +240,229 @@ void reconnect() {
   }
 }
 
-
-String fixLengthStringRightAlign(String text, int length)
+void saveConfigCallback()
 {
-  String rtnVal;
-  for (int i = 0; i < length; i++)
-    rtnVal += " ";
-  rtnVal += text;
-  return rtnVal.substring(rtnVal.length() - length, rtnVal.length());
+  Serial.println("Should save config");
+  shouldSaveConfig = true;
 }
 
-String fixLengthStringLeftAlign(String text, int length)
+void configModeCallback(WiFiManager *myWiFiManager)
 {
-  String rtnVal = text;
-  for (int i = 0; i < length; i++)
-    rtnVal += " ";
-  return rtnVal.substring(0, length);
+  Serial.println("Entered Conf Mode");
+
+  Serial.print("Config SSID: ");
+  Serial.println(myWiFiManager->getConfigPortalSSID());
+
+  Serial.print("Config IP Address: ");
+  Serial.println(WiFi.softAPIP());
+}
+
+void saveConfigFile()
+{
+  Serial.println(F("Saving config"));
+  StaticJsonDocument<2048> json;
+  json["VICTRON_HOST"] = VICTRON_HOST;
+  json["VICTRON_PORT"] = VICTRON_PORT;
+  json["VICTRON_ID"] = VICTRON_ID;
+  json["TOPICBLOCK1"] = TOPICBLOCK1;
+  json["TOPICBLOCK2"] = TOPICBLOCK2;
+  json["TOPICBLOCK3"] = TOPICBLOCK3;
+  json["TOPICBLOCK4"] = TOPICBLOCK4;
+  json["TOPICBLOCK5"] = TOPICBLOCK5;
+  json["TOPICMSOC"] = TOPICMSOC;
+
+  File configFile = SPIFFS.open(JSON_CONFIG_FILE, "w");
+  if (!configFile)
+  {
+    Serial.println("failed to open config file for writing");
+  }
+
+  serializeJsonPretty(json, Serial);
+  if (serializeJson(json, configFile) == 0)
+  {
+    Serial.println(F("Failed to write to file"));
+  }
+  configFile.close();
+}
+
+bool loadConfigFile()
+{
+  if (SPIFFS.exists(JSON_CONFIG_FILE))
+  {
+    //file exists, reading and loading
+    Serial.println("reading config file");
+    File configFile = SPIFFS.open(JSON_CONFIG_FILE, "r");
+    if (configFile)
+    {
+      Serial.println("opened config file");
+      StaticJsonDocument<2048> json;
+      DeserializationError error = deserializeJson(json, configFile);
+      serializeJsonPretty(json, Serial);
+      if (!error)
+      {
+        Serial.println("\nparsed json");
+
+        strcpy(VICTRON_HOST, json["VICTRON_HOST"]);
+        VICTRON_PORT = json["VICTRON_PORT"].as<int>();
+        VICTRON_ID = json["VICTRON_ID"].as<String>();
+        TOPICBLOCK1 = json["TOPICBLOCK1"].as<String>();
+        TOPICBLOCK2 = json["TOPICBLOCK2"].as<String>();
+        TOPICBLOCK3 = json["TOPICBLOCK3"].as<String>();
+        TOPICBLOCK4 = json["TOPICBLOCK4"].as<String>();
+        TOPICBLOCK5 = json["TOPICBLOCK5"].as<String>();
+        TOPICMSOC = json["TOPICMSOC"].as<String>();
+        return true;
+      }
+      else
+      {
+        Serial.println("failed to load json config");
+      }
+    }
+  }
+  //end read
+  return false;
+}
+
+void connectSPIFFS() {
+  if (SPIFFS.begin(false) || SPIFFS.begin(true))
+  {
+    Serial.println("SPIFFS Connected!");
+  } else {
+    Serial.println("SPIFFS FAILED to mount!");
+    delay(5000);
+    ESP.restart();
+  }
+}
+
+void connectWifi(bool forceConfig)
+{
+    // Setup wifi and manager
+  WiFi.mode(WIFI_STA);
+  WiFiManager wm;
+  wm.setBreakAfterConfig(true);
+  wm.setSaveConfigCallback(saveConfigCallback);
+  wm.setAPCallback(configModeCallback);
+
+  // Create custom data for configuration
+  WiFiManagerParameter wc_victron_address("VICTRON_HOST", "Victron Address/Host", VICTRON_HOST, 50);  wm.addParameter(&wc_victron_address);
+  IntParameter wc_victron_port("VICTRON_PORT", "Victron Port", VICTRON_PORT);                         wm.addParameter(&wc_victron_port);
+  StringParameter wc_victron_id("VICTRON_ID", "Victron Id", VICTRON_ID);                              wm.addParameter(&wc_victron_id);
+  StringParameter wc_victron_topicblock1("TOPICBLOCK1", "Topic Block 1", TOPICBLOCK1);                wm.addParameter(&wc_victron_topicblock1);
+  StringParameter wc_victron_topicblock2("TOPICBLOCK2", "Topic Block 2", TOPICBLOCK2);                wm.addParameter(&wc_victron_topicblock2);
+  StringParameter wc_victron_topicblock3("TOPICBLOCK3", "Topic Block 3", TOPICBLOCK3);                wm.addParameter(&wc_victron_topicblock3);
+  StringParameter wc_victron_topicblock4("TOPICBLOCK4", "Topic Block 4", TOPICBLOCK4);                wm.addParameter(&wc_victron_topicblock4);
+  StringParameter wc_victron_topicblock5("TOPICBLOCK5", "Topic Block 5", TOPICBLOCK5);                wm.addParameter(&wc_victron_topicblock5);
+  StringParameter wc_victron_topicmsoc("TOPICMSOC", "Topic MSOC", TOPICMSOC);                         wm.addParameter(&wc_victron_topicmsoc);
+
+  if (forceConfig) {
+    gfx->setTextColor(RED);
+    gfx->println("Forced config mode!");
+    gfx->println("SSID to configure:");
+    gfx->setTextColor(GREEN);
+    gfx->println("Victron-MQTT-Setup");
+    if (!wm.startConfigPortal("Victron-MQTT-Setup"))
+    {
+      gfx->setTextColor(WHITE);
+      gfx->println("Failed to connect, restarting!");
+      Serial.println("failed to connect and hit timeout");
+      delay(5000);
+      ESP.restart();
+    }
+  }
+  else {
+    gfx->setTextColor(GREEN);
+    gfx->println("Connecting to " + wm.getWiFiSSID());
+    bool canConnect = wm.autoConnect("Victron-MQTT-Setup");
+    if (!canConnect)
+    {
+      gfx->setTextColor(WHITE);
+      gfx->println("Failed to connect, restarting!");
+      Serial.println("Failed to connect and hit timeout");
+      delay(5000);
+      ESP.restart();
+    }
+  }
+  // Allow to reconnect to WiFi if signal is lost
+  WiFi.setAutoReconnect(true);
+  // Would be set with the callback saveConfigCallback
+  if (shouldSaveConfig) {
+    gfx->setTextColor(YELLOW);
+    gfx->println("Saving settings ...");
+    strncpy(VICTRON_HOST, wc_victron_address.getValue(), sizeof(VICTRON_HOST));
+    VICTRON_PORT = wc_victron_port.getValue();
+    VICTRON_ID = wc_victron_id.getValue();
+    TOPICBLOCK1 = wc_victron_topicblock1.getValue();
+    TOPICBLOCK2 = wc_victron_topicblock2.getValue();
+    TOPICBLOCK3 = wc_victron_topicblock3.getValue();
+    TOPICBLOCK4 = wc_victron_topicblock4.getValue();
+    TOPICBLOCK5 = wc_victron_topicblock5.getValue();
+    TOPICMSOC = wc_victron_topicmsoc.getValue();
+    saveConfigFile();
+  }
+}
+
+void setup() {
+  
+  Serial.begin(115200);
+  delay(10);
+
+  pinMode(PIN_POWER_ON, OUTPUT);
+  digitalWrite(PIN_POWER_ON, HIGH);
+  ledcSetup(0, 10000, 8);
+  ledcAttachPin(PIN_LCD_BL, 0);
+  ledcWrite(0, LCD_BRIGHTNESS);
+
+  gfx->begin();
+  gfx->setRotation(3);
+  gfx->fillScreen(BLACK);
+  gfx->setTextSize(1);
+  gfx->setFont(u8g2_font_10x20_mr);
+  gfx->setTextColor(GREEN);
+  gfx->setCursor(0, 12);
+  gfx->println("Starting...");  Serial.println("Starting...");
+
+  connectSPIFFS();
+  gfx->println("SPIFFS connected!");
+
+  connectWifi(!loadConfigFile()); // Force config if config file error
+
+  delay(2000);
+
+  mqttClient.setServer(VICTRON_HOST, VICTRON_PORT);
+  mqttClient.setCallback(mqttCallback);
+
+  drawBackground();
+}
+
+void loop() {
+  // If WiFi is not connected exit loop and wait for reconnection
+  if (!WiFi.isConnected()) {
+      Serial.println("WiFi connection lost ...");
+      delay(1000);
+      drawBackground();
+    return;
+  }
+  if (!mqttClient.connected()) {
+    Serial.println("Not connected!");
+    reconnect();
+  }
+
+  mqttClient.loop();
+
+  if (lastMQTTResponse + (VICTRON_MQTT_TIMEOUT * 1000) < millis())
+  {
+    // Send a keep alive message
+    if (mqttClient.connected())
+    {
+      lastMQTTResponse = millis();
+      Serial.println("Sending keep alive.");
+      char buf0[25];
+      char buf1[255];
+      String tempStr = "R/" + VICTRON_ID + "/keepalive";
+      tempStr.toCharArray(buf0, tempStr.length() + 1);
+      tempStr = "[\"" + TOPICBLOCK1 + "\", \"" + TOPICBLOCK2 + "\", \"" + TOPICBLOCK3 + "\", \"" + TOPICBLOCK4 + "\", \"" + TOPICBLOCK5 + "\", \"" + MSOC + "\"]";
+      tempStr.toCharArray(buf1, tempStr.length() + 1);
+      mqttClient.publish(buf0, buf1);
+    }
+  }
 }
