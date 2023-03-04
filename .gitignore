@@ -30,7 +30,8 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
-data/
+
+data/config.json
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
@@ -355,3 +356,4 @@ MigrationBackup/
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+
