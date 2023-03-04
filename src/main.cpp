@@ -371,7 +371,14 @@ void connectWifi(bool forceConfig)
   }
   else {
     gfx->setTextColor(GREEN);
-    gfx->println("Connecting to " + wm.getWiFiSSID());
+    if (wm.getWiFiSSID().length() > 0)
+      gfx->println("Connecting to " + wm.getWiFiSSID());
+    else
+    {
+      gfx->println("Connect to configure:");
+      gfx->setTextColor(GREEN);
+      gfx->println("Victron-MQTT-Setup");
+    }
     bool canConnect = wm.autoConnect("Victron-MQTT-Setup");
     if (!canConnect)
     {
