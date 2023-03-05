@@ -264,6 +264,7 @@ void saveConfigFile()
   json["VICTRON_HOST"] = VICTRON_HOST;
   json["VICTRON_PORT"] = VICTRON_PORT;
   json["VICTRON_ID"] = VICTRON_ID;
+  json["VICTRON_WATT"] = VICTRON_WATT;
   json["TOPICBLOCK1"] = TOPICBLOCK1;
   json["TOPICBLOCK2"] = TOPICBLOCK2;
   json["TOPICBLOCK3"] = TOPICBLOCK3;
@@ -305,6 +306,7 @@ bool loadConfigFile()
         strcpy(VICTRON_HOST, json["VICTRON_HOST"]);
         VICTRON_PORT = json["VICTRON_PORT"].as<int>();
         VICTRON_ID = json["VICTRON_ID"].as<String>();
+        VICTRON_WATT = json["VICTRON_WATT"].as<int>();
         TOPICBLOCK1 = json["TOPICBLOCK1"].as<String>();
         TOPICBLOCK2 = json["TOPICBLOCK2"].as<String>();
         TOPICBLOCK3 = json["TOPICBLOCK3"].as<String>();
@@ -344,15 +346,16 @@ void connectWifi(bool forceConfig)
   wm.setAPCallback(configModeCallback);
 
   // Create custom data for configuration
-  WiFiManagerParameter wc_victron_address("VICTRON_HOST", "Victron Address/Host", VICTRON_HOST, 50);  wm.addParameter(&wc_victron_address);
-  IntParameter wc_victron_port("VICTRON_PORT", "Victron Port", VICTRON_PORT);                         wm.addParameter(&wc_victron_port);
-  StringParameter wc_victron_id("VICTRON_ID", "Victron Id", VICTRON_ID);                              wm.addParameter(&wc_victron_id);
-  StringParameter wc_victron_topicblock1("TOPICBLOCK1", "Topic Block 1", TOPICBLOCK1);                wm.addParameter(&wc_victron_topicblock1);
-  StringParameter wc_victron_topicblock2("TOPICBLOCK2", "Topic Block 2", TOPICBLOCK2);                wm.addParameter(&wc_victron_topicblock2);
-  StringParameter wc_victron_topicblock3("TOPICBLOCK3", "Topic Block 3", TOPICBLOCK3);                wm.addParameter(&wc_victron_topicblock3);
-  StringParameter wc_victron_topicblock4("TOPICBLOCK4", "Topic Block 4", TOPICBLOCK4);                wm.addParameter(&wc_victron_topicblock4);
-  StringParameter wc_victron_topicblock5("TOPICBLOCK5", "Topic Block 5", TOPICBLOCK5);                wm.addParameter(&wc_victron_topicblock5);
-  StringParameter wc_victron_topicmsoc("TOPICMSOC", "Topic MSOC", TOPICMSOC);                         wm.addParameter(&wc_victron_topicmsoc);
+  WiFiManagerParameter wc_victron_address("VICTRON_HOST", "Victron MQTT Address/Host", VICTRON_HOST, 50);   wm.addParameter(&wc_victron_address);
+  IntParameter wc_victron_port("VICTRON_PORT", "Victron MQTT Port", VICTRON_PORT);                          wm.addParameter(&wc_victron_port);
+  StringParameter wc_victron_id("VICTRON_ID", "Victron Id", VICTRON_ID);                                    wm.addParameter(&wc_victron_id);
+  IntParameter wc_victron_watt("VICTRON_WATT", "Victron Inverter Wh", VICTRON_WATT);                        wm.addParameter(&wc_victron_watt);
+  StringParameter wc_victron_topicblock1("TOPICBLOCK1", "Battery state of charge topic", TOPICBLOCK1);      wm.addParameter(&wc_victron_topicblock1);
+  StringParameter wc_victron_topicblock2("TOPICBLOCK2", "Non-critical load topic", TOPICBLOCK2);            wm.addParameter(&wc_victron_topicblock2);
+  StringParameter wc_victron_topicblock3("TOPICBLOCK3", "Grid power topic", TOPICBLOCK3);                   wm.addParameter(&wc_victron_topicblock3);
+  StringParameter wc_victron_topicblock4("TOPICBLOCK4", "Solar power topic", TOPICBLOCK4);                  wm.addParameter(&wc_victron_topicblock4);
+  StringParameter wc_victron_topicblock5("TOPICBLOCK5", "Critical loads topic", TOPICBLOCK5);               wm.addParameter(&wc_victron_topicblock5);
+  StringParameter wc_victron_topicmsoc("TOPICMSOC", "Minimum State of Charge topic", TOPICMSOC);            wm.addParameter(&wc_victron_topicmsoc);
 
   if (forceConfig) {
     gfx->setTextColor(RED);
@@ -398,6 +401,7 @@ void connectWifi(bool forceConfig)
     strncpy(VICTRON_HOST, wc_victron_address.getValue(), sizeof(VICTRON_HOST));
     VICTRON_PORT = wc_victron_port.getValue();
     VICTRON_ID = wc_victron_id.getValue();
+    VICTRON_WATT = wc_victron_watt.getValue();
     TOPICBLOCK1 = wc_victron_topicblock1.getValue();
     TOPICBLOCK2 = wc_victron_topicblock2.getValue();
     TOPICBLOCK3 = wc_victron_topicblock3.getValue();

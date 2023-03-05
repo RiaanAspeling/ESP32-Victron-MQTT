@@ -7,7 +7,7 @@ char      VICTRON_HOST[50] = "";
 int       VICTRON_PORT = 0;
 String    VICTRON_ID = "";              // Find this in the https://vrm.victronenergy.com/ portal at "Device list" | "Gateway" | "VRM portal ID"
 int       VICTRON_MQTT_TIMEOUT = 5;
-int       VICTRON_WATT = 5000;
+int       VICTRON_WATT = 5000;          // Size of the invertor. This is used to change colour when limits are reaced.
 
 int       TOPICVALUES[] = {0, 0, 0, 0, 0};
 String    TOPICBLOCK1 = "";             // Battery state of charge. Alternative location = "system/0/Batteries"
