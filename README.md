@@ -1,8 +1,16 @@
 # ESP32-Victron-MQTT
-ESP32-S3 display for a Victron MQTT broker
 
-It is possible to add your settings as a json file by creating a data folder and file called config.json Add the following content to the file:
-
+It is possible to add your settings as a json file by creating a data folder:
+```
+\.pio
+\.vscode
+\data      <- This folder
+\include
+\lib
+\src
+\test
+```
+In the data folder create a file called config.json Add the following content to the file:
 ```
 {
     "VICTRON_HOST" : "192.168.1.1",
@@ -17,5 +25,4 @@ It is possible to add your settings as a json file by creating a data folder and
     "TOPICMSOC" : "settings/0/Settings/CGwacs/BatteryLife/MinimumSocLimit"
 }
 ```
-
-You can the open PlatformIO pain and select PROJECT TASKS | esp32s3box | Platform | Build Filesystem image. Once done you can upload this settings by selecting "Upload Filesystem Image" below.
+You can then open PlatformIO pain and select "PROJECT TASKS | esp32s3box | Platform | Build Filesystem image". Once done you can upload this settings by selecting "Upload Filesystem Image".
