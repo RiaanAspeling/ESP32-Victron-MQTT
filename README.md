@@ -17,3 +17,5 @@ It is possible to add your settings as a json file by creating a data folder and
     "TOPICMSOC" : "settings/0/Settings/CGwacs/BatteryLife/MinimumSocLimit"
 }
 ```
+
+You can the open PlatformIO pain and select PROJECT TASKS | esp32s3box | Platform | Build Filesystem image. Once done you can upload this settings by selecting "Upload Filesystem Image" below.
