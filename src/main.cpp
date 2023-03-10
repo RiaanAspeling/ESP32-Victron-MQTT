@@ -1,5 +1,6 @@
 #include "Arduino.h"
 #include "WiFi.h"
+#include <WiFiClient.h>
 #include "U8g2lib.h"
 #include "Arduino_GFX_Library.h"
 #include "PubSubClient.h"
@@ -7,6 +8,8 @@
 #include <SPIFFS.h>
 #include "config.h"
 #include <WiFiManager.h>
+#include <ESPAsyncWebServer.h>
+#include <AsyncElegantOTA.h>
 #include "extensions.cpp"
 
 // INIT GFX
@@ -19,6 +22,8 @@ Arduino_GFX *gfx = new Arduino_ST7789(bus, PIN_LCD_RES,
 
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
+
+AsyncWebServer server(80);
 
 ulong lastMQTTResponse = 0;
 
@@ -45,11 +50,18 @@ String fixLengthStringLeftAlign(String text, int length)
 void drawBackground()
 {
   gfx->fillScreen(BLACK);
-  gfx->fillRoundRect(0, 0, 105, 70, 5, LIGHTGREY);        gfx->fillRoundRect(5, 5, 95, 60, 5, DARKGREY);
-  gfx->fillRoundRect(107, 0, 105, 70, 5, LIGHTGREY);      gfx->fillRoundRect(112, 5, 95, 60, 5, DARKGREY);
-  gfx->fillRoundRect(214, 0, 105, 70, 5, LIGHTGREY);      gfx->fillRoundRect(219, 5, 95, 60, 5, DARKGREY);
-  gfx->fillRoundRect(0, 72, 159, 98, 5, LIGHTGREY);      gfx->fillRoundRect(5, 77, 149, 88, 5, DARKGREY);
-  gfx->fillRoundRect(161, 72, 159, 98, 5, LIGHTGREY);    gfx->fillRoundRect(166, 77, 149, 88, 5, DARKGREY);
+  gfx->fillRoundRect(0, 0, 105, 70, 5, LIGHTGREY);    gfx->fillRoundRect(5, 5, 95, 60, 5, DARKGREY);
+  gfx->fillRoundRect(107, 0, 105, 70, 5, LIGHTGREY);  gfx->fillRoundRect(112, 5, 95, 60, 5, DARKGREY);
+  gfx->fillRoundRect(214, 0, 105, 70, 5, LIGHTGREY);  gfx->fillRoundRect(219, 5, 95, 60, 5, DARKGREY);
+  gfx->fillRoundRect(0, 72, 159, 98, 5, LIGHTGREY);   gfx->fillRoundRect(5, 77, 149, 88, 5, DARKGREY);
+  gfx->fillRoundRect(161, 72, 159, 98, 5, LIGHTGREY); gfx->fillRoundRect(166, 77, 149, 88, 5, DARKGREY);
+  gfx->setTextColor(BLACK);
+  gfx->setTextSize(1);
+  gfx->setFont(u8g2_font_4x6_mr);
+  gfx->setCursor(10, 170);
+  gfx->print(WiFi.localIP());
+  gfx->setCursor(176, 170);
+  gfx->print(WiFi.getHostname());
 }
 void drawBlock1(float value) // Battery
 {
@@ -230,7 +242,7 @@ void reconnect() {
   while (!mqttClient.connected()) {
     lastMQTTResponse = millis();
     // Attempt to connect
-    if (mqttClient.connect("ESP32-Victron-MQTT")) {
+    if (mqttClient.connect(WiFi.getHostname())) {
       Serial.println("Connected!");
       subscribe();
     } else {
@@ -360,6 +372,7 @@ void connectWifi(bool forceConfig)
   if (forceConfig) {
     gfx->setTextColor(RED);
     gfx->println("Forced config mode!");
+    gfx->setTextColor(YELLOW);
     gfx->println("SSID to configure:");
     gfx->setTextColor(GREEN);
     gfx->println("Victron-MQTT-Setup");
@@ -413,7 +426,10 @@ void connectWifi(bool forceConfig)
 }
 
 void setup() {
-  
+
+  pinMode(PIN_BUTTON_1, INPUT);     // Press this button after startup to zoom into each pannel
+  pinMode(PIN_BUTTON_2, INPUT);     // Press button two on startup to force config mode
+
   Serial.begin(115200);
   delay(10);
 
@@ -435,7 +451,23 @@ void setup() {
   connectSPIFFS();
   gfx->println("SPIFFS connected!");
 
-  connectWifi(!loadConfigFile()); // Force config if config file error
+  if (!digitalRead(PIN_BUTTON_2)) {
+    gfx->println("Starting config ...");
+    connectWifi(true);
+  }
+  else
+  {
+    gfx->println("Try connecting ...");
+    connectWifi(!loadConfigFile()); // Force config if config file error
+  }
+
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    // request->send_P(200, "text/html", index_html);
+    request->redirect("/update");
+  });
+
+  AsyncElegantOTA.begin(&server, "", ""); //, "/");    // Start AsyncElegantOTA
+  server.begin();
 
   delay(2000);
 

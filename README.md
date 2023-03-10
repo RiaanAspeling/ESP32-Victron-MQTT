@@ -10,7 +10,7 @@ It is possible to add your settings as a json file by creating a data folder:
 \src
 \test
 ```
-In the data folder create a file called config.json Add the following content to the file change settings as required:
+In the data folder create a file called config.json Add the following content to the file and change settings as required:
 ```
 {
     "VICTRON_HOST" : "192.168.1.1",
