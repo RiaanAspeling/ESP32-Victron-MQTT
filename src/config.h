@@ -47,3 +47,5 @@ String    TOPICMSOC = "settings/0/Settings/CGwacs/BatteryLife/MinimumSocLimit"; 
 #define PIN_IIC_SDA                  18
 #define PIN_TOUCH_INT                16
 #define PIN_TOUCH_RES                21
+
+#define PIN_BUTTON_DEBOUNCE_TIME     100 // the debounce time in millisecond, increase this time if it still chatters
